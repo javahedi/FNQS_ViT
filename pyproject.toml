@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fnqs_vit"
+version = "0.1.0"
+description = "Foundation Neural-Network Quantum States with ViT architecture"
+authors = [
+  { name="Javad Vahedi", email="javahedi@gmail.com" }
+]
+readme = "README.md"
+requires-python = ">=3.10"
+keywords = ["quantum", "jax", "netket", "transformer", "vmc", "nqs"]
+
+dependencies = [
+    "jax>=0.4.25",
+    "jaxlib>=0.4.25",
+    "flax>=0.8.0",
+    "optax>=0.1.7",
+    "einops>=0.7.0",
+    "netket>=3.9",
+    "numpy>=1.26",
+    "matplotlib>=3.8",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.urls]
+homepage = "https://github.com/javahedi/FNQS_ViT.git"
+

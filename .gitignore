@@ -1,0 +1,43 @@
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+env/
+venv/
+
+# JAX / Flax compilation artifacts
+*.lock
+*.log
+*.out
+
+# Build directories
+build/
+dist/
+*.egg-info/
+*.egg/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# VSCode or IDE configs
+.vscode/
+.idea/
+
+# OS-level files
+.DS_Store
+
+# Data and checkpoints (optional)
+*.npz
+*.npy
+*.pkl
+*.ckpt
+*.h5
+
+# Large experiment results (optional)
+results/
+checkpoints/
+logs/
+

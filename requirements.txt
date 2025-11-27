@@ -1,0 +1,10 @@
+jax
+jaxlib
+flax
+optax
+netket
+einops
+numpy
+matplotlib
+pytest
+
