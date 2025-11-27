@@ -20,7 +20,6 @@ def test_gamma_patches_scalar():
     patches = extract_gamma_patches(gamma, (2,2))
     assert patches.shape == (4,4)
 
-
 def test_gamma_patches_channels():
     gamma = jnp.ones((4,4,3))  # 3 couplings per site
     patches = extract_gamma_patches(gamma, (2,2))
