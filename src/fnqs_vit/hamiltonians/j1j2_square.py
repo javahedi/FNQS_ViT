@@ -1,3 +1,5 @@
+# src/fnqs_vit/hamiltonians/j1j2_square.py
+
 from fnqs_vit.hamiltonians.lattice import create_square_lattice
 
 def heisenberg_j1j2(Lx: int, Ly: int, J2: float):
