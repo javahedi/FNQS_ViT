@@ -6,14 +6,24 @@ import jax.numpy as jnp
 # ------------------------------------------------------------
 # Build list of edges (NN + NNN) as a single array
 # ------------------------------------------------------------
+# def prepare_edge_array(nn_edges, nnn_edges):
+#     """
+#     Convert Python lists of edges into a single JAX array of shape (E,2),
+#     where each row is (i,j) in flattened indexing.
+#     """
+#     all_edges = nn_edges + nnn_edges
+#     return jnp.array(all_edges, dtype=jnp.int32)    # (E,2)
+    
 def prepare_edge_array(nn_edges, nnn_edges):
     """
-    Convert Python lists of edges into a single JAX array of shape (E,2),
-    where each row is (i,j) in flattened indexing.
+    Returns:
+        edges:     (E,2) int32
+        edge_type: (E,) int8   == 0 for NN, 1 for NNN
     """
-    all_edges = nn_edges + nnn_edges
-    return jnp.array(all_edges, dtype=jnp.int32)    # (E,2)
-    
+    edges = nn_edges + nnn_edges
+    edge_type = [0] * len(nn_edges) + [1] * len(nnn_edges)
+    return jnp.array(edges, dtype=jnp.int32), jnp.array(edge_type, dtype=jnp.int8)
+
 
 # ------------------------------------------------------------
 # Random initialization
@@ -51,57 +61,96 @@ def metropolis_update_edges(
     params,
     edge_array,        # (E,2)
     Lx, Ly,
-    restrict_flippable=False
+    restrict_flippable=False,
+    p_single=0.90,     # probability for single-spin flip
+    p_pair=0.09,       # probability for pair flip
+    p_global=0.01      # probability for global Z2 flip
 ):
     """
-    Perform one update on all M chains using randomly chosen edges.
-    If restrict_flippable=True → only edges with σ_i != σ_j allowed.
+    Perform one update on all M chains using a mixture of:
+      0 = single-spin flip
+      1 = pair flip on (i,j)
+      2 = global Z2 flip (sigma -> -sigma)
     """
     M = sigma_batch.shape[0]
     E = edge_array.shape[0]
 
-    # choose random edge per chain
-    key, key_edge, key_u = jax.random.split(key, 3)
-    edge_idx = jax.random.randint(key_edge, (M,), 0, E)
+    # -----------------------------
+    # Draw update type per chain
+    # -----------------------------
+    key, key_mode, key_single, key_edge, key_u = jax.random.split(key, 5)
 
-    # extract (i,j) for each chain
+    probs = jnp.array([p_single, p_pair, p_global])
+    cum = jnp.cumsum(probs)
+    r = jax.random.uniform(key_mode, (M,))
+    mode = jnp.sum(r[:, None] > cum[None, :], axis=1)   # shape (M,)
+
+    # ============================================================
+    # (1) SINGLE-SPIN FLIP
+    # ============================================================
+    N = Lx * Ly
+    idx_single = jax.random.randint(key_single, (M,), 0, N)
+    ii = idx_single // Ly
+    jj = idx_single % Ly
+
+    mask_single = jnp.zeros((M, Lx, Ly), bool)
+    mask_single = mask_single.at[jnp.arange(M), ii, jj].set(True)
+    sigma_single = jnp.where(mask_single, -sigma_batch, sigma_batch)
+
+    # ============================================================
+    # (2) PAIR FLIP (your original update)
+    # ============================================================
+    edge_idx = jax.random.randint(key_edge, (M,), 0, E)
     ij_pairs = edge_array[edge_idx]              # (M,2)
     i = ij_pairs[:,0]
     j = ij_pairs[:,1]
 
-    # build mask for flipping i,j
     def build_mask(pos):
         ii = pos // Ly
         jj = pos % Ly
         m = jnp.zeros((Lx,Ly), bool)
-        return m.at[ii,jj].set(True)
+        return m.at[ii, jj].set(True)
 
-    mask_i = jax.vmap(build_mask)(i)   # (M,Lx,Ly)
+    mask_i = jax.vmap(build_mask)(i)
     mask_j = jax.vmap(build_mask)(j)
-    flip_mask = jnp.logical_or(mask_i, mask_j)
+    flip_mask_pair = jnp.logical_or(mask_i, mask_j)
+    sigma_pair = jnp.where(flip_mask_pair, -sigma_batch, sigma_batch)
 
-    # enforce flippable (only opposite spins) for Sz-target
+    # flippability only applies to pair-flip mode
     if restrict_flippable:
-        flat = sigma_batch.reshape(M, Lx*Ly)
+        flat = sigma_batch.reshape(M, N)
         si = flat[jnp.arange(M), i]
         sj = flat[jnp.arange(M), j]
-        flippable = (si != sj)      # (M,)
+        flippable_pair = (si != sj)
+        flippable = jnp.where(mode == 1, flippable_pair, True)
     else:
         flippable = jnp.ones((M,), bool)
 
-    # apply proposal
-    sigma_prop = jnp.where(flip_mask, -sigma_batch, sigma_batch)
+    # ============================================================
+    # (3) GLOBAL Z2 FLIP
+    # ============================================================
+    sigma_global = -sigma_batch
 
-    # compute ψ
+    # ============================================================
+    # SELECT PROPOSAL
+    # ============================================================
+    # stack all as (3, M, Lx, Ly)
+    sigma_all = jnp.stack([sigma_single, sigma_pair, sigma_global], axis=0)
+    sigma_prop = sigma_all[mode, jnp.arange(M)]
+
+    # ------------------------------------------------------------
+    # Compute logpsi for proposal
+    # ------------------------------------------------------------
     logpsi_prop = jax.vmap(lambda s: logpsi_fn(params, s, gamma_field))(sigma_prop)
 
-    # Metropolis ratio
+    # ------------------------------------------------------------
+    # Metropolis acceptance
+    # ------------------------------------------------------------
     dlog = 2.0 * (jnp.real(logpsi_prop) - jnp.real(logpsi_batch))
     u = jax.random.uniform(key_u, (M,))
-    accept = (u < jnp.exp(dlog)) & flippable     # final accept rule
-    accept_mask = accept[:,None,None]
+    accept = (u < jnp.exp(dlog)) & flippable
+    accept_mask = accept[:, None, None]
 
-    # update σ and ψ
     sigma_new = jnp.where(accept_mask, sigma_prop, sigma_batch)
     logpsi_new = jnp.where(accept, logpsi_prop, logpsi_batch)
 

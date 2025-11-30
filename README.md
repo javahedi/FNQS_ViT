@@ -11,7 +11,8 @@ The package provides:
 * Modular components: patch embedding, ViT blocks, lattice utilities, samplers, local energy operators
 
 This repository follows the methodology of
-***Foundation Neural-Networks Quantum States as a Unified Ansatz for Multiple Hamiltonians***
+***Foundation Neural-Networks Quantum States as a Unified Ansatz for Multiple Hamiltonians***{ref}
+
 and adapts the FNQS idea into a ViT-based architecture for 2D spin systems.
 
 ---
