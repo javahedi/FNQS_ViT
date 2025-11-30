@@ -20,7 +20,7 @@ and adapts the FNQS idea into a ViT-based architecture for 2D spin systems.
 
 FNQS-ViT is a neural-network ansatz for many-body quantum wavefunctions:
 
-$$\Psi_\theta(\sigma) ;=; e^{\log\psi_\theta(\sigma)} ,$$
+$$\Psi_\theta(\sigma) =e^{\log\psi_\theta(\sigma)} $$
 
 where the configuration ($\sigma \in {-1,+1}^{L\times L}$) is embedded into patches, processed by a Vision Transformer, and mapped to a complex scalar log-amplitude.
 
@@ -51,11 +51,11 @@ The energy of the neural-network quantum state is:
 
 $$E(\theta) =
 \frac{\langle \Psi_\theta | H | \Psi_\theta \rangle}
-{\langle \Psi_\theta | \Psi_\theta \rangle}.$$
+{\langle \Psi_\theta | \Psi_\theta \rangle}$$
 
 Monte-Carlo sampling draws configurations from:
 
-$$p_\theta(\sigma) = \frac{|\Psi_\theta(\sigma)|^2}{Z}.$$
+$$p_\theta(\sigma) = \frac{|\Psi_\theta(\sigma)|^2}{Z}$$
 
 The **local energy** is:
 
@@ -64,11 +64,11 @@ $$E_\text{loc}(\sigma) =
 \frac{\Psi_\theta(\sigma')}{\Psi_\theta(\sigma)}=
 E_{\text{diag}}(\sigma) +
 \sum_{\sigma' \neq \sigma}
-e^{\log\psi(\sigma') - \log\psi(\sigma)}.$$
+e^{\log\psi(\sigma') - \log\psi(\sigma)}$$
 
 The Monte-Carlo estimator:
 
-$$E(\theta) \approx\frac{1}{M} \sum_{k=1}^M E_\text{loc}(\sigma_k).$$
+$$E(\theta) \approx\frac{1}{M} \sum_{k=1}^M E_\text{loc}(\sigma_k)$$
 
 ---
 
@@ -78,7 +78,7 @@ For SR and gradient-based optimizers, log-derivatives are:
 
 
 $$O_i(\sigma) = \frac{\partial \log\psi_\theta(\sigma)}{\partial\theta_i},
-\quad\vec{O}(\sigma) \in \mathbb{C}^P .$$
+\quad\vec{O}(\sigma) \in \mathbb{C}^P$$
 
 ---
 
@@ -90,23 +90,20 @@ $$S\delta\theta = -\eta G$$
 
 where:
 
-$$S_{ij}=\big\langle O_i^\ast O_j\big\rangle-\langle O_i^\ast\rangle\langle O_j\rangle,$$
+$$S_{ij}=\big\langle O_i^\ast O_j\big\rangle-\langle O_i^\ast\rangle\langle O_j\rangle$$
 
 $$G_i =2\Re\Big(\langle O_i^\ast E_\text{loc} \rangle-\langle O_i^\ast\rangle \langle E_\text{loc}\rangle
-  \Big).$$
+  \Big)$$
 
 The update:
 
-$$\theta\leftarrow\theta + \delta\theta.$$
+$$\theta\leftarrow\theta + \delta\theta$$
 
 ---
 
 ## **2.4 $J_1–J_2$ Hamiltonian**
 
-$H = J_1 \sum_{\langle i,j\rangle}
-\mathbf{S}_i \cdot \mathbf{S}*j+
-J_2 \sum*{\langle!\langle i,j\rangle!\rangle}
-\mathbf{S}_i \cdot \mathbf{S}_j$
+$$H = J_1 \sum_{\langle i,j\rangle}\mathbf{S}_i \cdot \mathbf{S}_j+J_2 \sum*{\langle!\langle i,j\rangle!\rangle}\mathbf{S}_i \cdot \mathbf{S}_j$$
 
 In the Ising basis, off-diagonal terms flip pairs of spins.
 
@@ -118,8 +115,8 @@ FNQS-ViT uses the following pipeline:
 
 ### **3.1 Patch Embedding**
 
-$\sigma \in \mathbb{Z}_2^{L\times L}
-\to \text{patch tokens: } (p_1,\dots,p_K)$
+$$\sigma \in \mathbb{Z}_2^{L\times L}
+\to \text{patch tokens: } (p_1,\dots,p_K)$$
 
 ### **3.2 Vision Transformer Encoder**
 
@@ -134,11 +131,11 @@ Standard ViT blocks:
 
 The transformer tokens are pooled and mapped to:
 
-$\log\psi_\theta(\sigma) \in \mathbb{C}.$
+$$\log\psi_\theta(\sigma) \in \mathbb{C}$$
 
 Gamma-conditioning (FNQS idea):
 
-* global or structured ( \gamma )-fields
+* global or structured ( $\gamma$ )-fields
 * model learns features shared across Hamiltonians
 
 ---
