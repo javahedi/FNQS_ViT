@@ -20,7 +20,7 @@ and adapts the FNQS idea into a ViT-based architecture for 2D spin systems.
 
 FNQS-ViT is a neural-network ansatz for many-body quantum wavefunctions:
 
-$\Psi_\theta(\sigma) ;=; e^{\log\psi_\theta(\sigma)} ,$
+$$\Psi_\theta(\sigma) ;=; e^{\log\psi_\theta(\sigma)} ,$$
 
 where the configuration ($\sigma \in {-1,+1}^{L\times L}$) is embedded into patches, processed by a Vision Transformer, and mapped to a complex scalar log-amplitude.
 
@@ -36,8 +36,8 @@ The package implements:
 | -------------------------- | ------------------------------------------------- |
 | FNQS-ViT Model             | Patch embedding + ViT encoder + scalar output     |
 | Vectorized Samplers        | Full space & fixed-$S^z$ sector versions          |
-| J1–J2 Hamiltonian          | NN & NNN edges, periodic boundary options         |
-| Local Energy               | Full batch (E_\text{loc}(\sigma)) for all samples |
+| $J_1–J_2$ Hamiltonian          | NN & NNN edges, periodic boundary options         |
+| Local Energy               | Full batch ($E_\text{loc}(\sigma)$) for all samples |
 | Stochastic Reconfiguration | Natural-gradient parameter updates                |
 | Device Utilities           | Automatic GPU/CPU selection                       |
 
@@ -49,26 +49,26 @@ The package implements:
 
 The energy of the neural-network quantum state is:
 
-$E(\theta) =
+$$E(\theta) =
 \frac{\langle \Psi_\theta | H | \Psi_\theta \rangle}
-{\langle \Psi_\theta | \Psi_\theta \rangle}.$
+{\langle \Psi_\theta | \Psi_\theta \rangle}.$$
 
 Monte-Carlo sampling draws configurations from:
 
-$p_\theta(\sigma) = \frac{|\Psi_\theta(\sigma)|^2}{Z}.$
+$$p_\theta(\sigma) = \frac{|\Psi_\theta(\sigma)|^2}{Z}.$$
 
 The **local energy** is:
 
-$E_\text{loc}(\sigma) =
+$$E_\text{loc}(\sigma) =
 \sum_{\sigma'} H_{\sigma,\sigma'}
 \frac{\Psi_\theta(\sigma')}{\Psi_\theta(\sigma)}=
 E_{\text{diag}}(\sigma) +
 \sum_{\sigma' \neq \sigma}
-e^{\log\psi(\sigma') - \log\psi(\sigma)}.$
+e^{\log\psi(\sigma') - \log\psi(\sigma)}.$$
 
 The Monte-Carlo estimator:
 
-$E(\theta) \approx\frac{1}{M} \sum_{k=1}^M E_\text{loc}(\sigma_k).$
+$$E(\theta) \approx\frac{1}{M} \sum_{k=1}^M E_\text{loc}(\sigma_k).$$
 
 ---
 
@@ -77,8 +77,8 @@ $E(\theta) \approx\frac{1}{M} \sum_{k=1}^M E_\text{loc}(\sigma_k).$
 For SR and gradient-based optimizers, log-derivatives are:
 
 
-$O_i(\sigma) = \frac{\partial \log\psi_\theta(\sigma)}{\partial\theta_i},
-\quad\vec{O}(\sigma) \in \mathbb{C}^P .$
+$$O_i(\sigma) = \frac{\partial \log\psi_\theta(\sigma)}{\partial\theta_i},
+\quad\vec{O}(\sigma) \in \mathbb{C}^P .$$
 
 ---
 
@@ -86,26 +86,18 @@ $O_i(\sigma) = \frac{\partial \log\psi_\theta(\sigma)}{\partial\theta_i},
 
 SR approximates natural-gradient descent on the manifold of quantum states:
 
-$S , \delta\theta = -\eta , G ,$
+$$S\delta\theta = -\eta G$$
 
 where:
 
-$S_{ij}=\big\langle O_i^\ast O_j \big\rangle
-* \langle O_i^\ast\rangle\langle O_j\rangle,
-  $
+$$S_{ij}=\big\langle O_i^\ast O_j\big\rangle-\langle O_i^\ast\rangle\langle O_j\rangle,$$
 
-$
-G_i =
-2 , \Re\Big(
-\langle O_i^\ast E_\text{loc} \rangle
-
-* \langle O_i^\ast\rangle \langle E_\text{loc}\rangle
-  \Big).
-  $
+$$G_i =2\Re\Big(\langle O_i^\ast E_\text{loc} \rangle-\langle O_i^\ast\rangle \langle E_\text{loc}\rangle
+  \Big).$$
 
 The update:
 
-$\theta ;\leftarrow; \theta + \delta\theta.$
+$$\theta\leftarrow\theta + \delta\theta.$$
 
 ---
 
