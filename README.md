@@ -152,7 +152,7 @@ pip install -r requirements.txt
 
 # **5. Usage Example**
 
-### **Run VMC training on J1–J2 model**
+### **Run VMC training on $J_1–J_2$ model**
 
 ```bash
 python src/fnqs_vit/experiments/train_j1j2_fnqs.py
@@ -215,7 +215,7 @@ from fnqs_vit.vmc.sr import compute_sr_matrices, sr_update
 fnqs_vit/
     fnqs/               # FNQS-ViT architecture
     vmc/                # samplers, local energy, SR
-    hamiltonians/       # J1-J2, lattice graphs
+    hamiltonians/       # $J_1-J_2$, lattice graphs
     experiments/        # training scripts, observables
     tests/              # unit tests for key modules
     utils/              # device management
