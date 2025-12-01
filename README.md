@@ -239,13 +239,7 @@ Energy should be strictly real for Hermitian Hamiltonians, but small imaginary c
 
 The $S^z$-conserving sampler uses pair flips; acceptance may be lower than single-flip proposals.
 
-### **3. Variation between different runs**
 
-Even with the same seed, VMC has sources of variance:
-
-* non-deterministic JAX ops on CPU
-* SR matrix inversion is sensitive
-* multi-chain batch sampling introduces stronger correlations
 
 Further debugging is planned.
 
