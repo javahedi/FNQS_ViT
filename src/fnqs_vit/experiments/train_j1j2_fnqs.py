@@ -1,5 +1,3 @@
-# src/fnqs_vit/experiments/train_j1j2_fnqs.py
-
 import os
 import time
 import json
@@ -23,7 +21,7 @@ from fnqs_vit.utils.device import prefer_gpu_if_available, print_available_devic
 
 
 def get_config(fast=False):
-    base = {"Sztarget": 0}  # None for full space
+    base = {"Sztarget": None}
 
     if fast:
         base.update({
@@ -52,11 +50,11 @@ def get_config(fast=False):
             "depth": 4,
             "hidden_dim": 288,
             "num_heads": 12,
-            "R": 10,
+            "R": 20,
             "gamma_min": 0.4,
             "gamma_max": 0.6,
             "n_discard": 20,
-            "samples_per_system": 200,
+            "samples_per_system": 1000,
             "iterations": 50,
             "eta": 0.01,
             "diag_shift": 0.01,
@@ -81,17 +79,18 @@ def train_fnqs_j1j2(fast=False):
     print("=============================================\n")
 
     Sztarget = cfg["Sztarget"]
-
     Lx = Ly = cfg["L"]
+
+    # Build NN & NNN edges
     nn_edges, nnn_edges = create_square_lattice(Lx, Ly)
 
-    # create edge array for both sampler & energy
-    edge_array = prepare_edge_array(nn_edges, nnn_edges)
+    # NEW: sampler needs (edge_array, edge_type)
+    edge_array, edge_type = prepare_edge_array(nn_edges, nnn_edges)
 
     gammas = jnp.linspace(cfg["gamma_min"], cfg["gamma_max"], cfg["R"])
     gamma_fields = jnp.stack([make_gamma_field(g, Lx, Ly) for g in gammas])
 
-    # init model
+    # Init model
     key = jax.random.PRNGKey(cfg["seed"])
     model = FNQSViT(
         depth=cfg["depth"],
@@ -124,7 +123,6 @@ def train_fnqs_j1j2(fast=False):
             g_scalar = float(gammas[k])
             g_field = gamma_fields[k]
 
-            # prepare M initial states
             key, k1 = jax.random.split(key)
             M = cfg["samples_per_system"]
 
@@ -133,7 +131,7 @@ def train_fnqs_j1j2(fast=False):
             else:
                 sigma_init = random_spin_state_in_sector(k1, M, Lx, Ly, Sztarget)
 
-            # sample
+            # Sampling — sampler now uses edge_array ONLY (not edge_type)
             sigma_hist, logpsi_hist = sample_chain_batch_edges(
                 key,
                 logpsi_fn,
@@ -142,7 +140,7 @@ def train_fnqs_j1j2(fast=False):
                 sigma_init,
                 cfg["n_discard"],
                 M,
-                edge_array,
+                edge_array,     # unchanged for sampler
                 Lx, Ly,
                 Sztarget=Sztarget,
             )
@@ -150,30 +148,29 @@ def train_fnqs_j1j2(fast=False):
             sigma_batch = sigma_hist[-1]
             logpsi_batch = logpsi_hist[-1]
 
-            # compute local energy
+            # Local energy — now requires edge_type
             E_k = compute_local_energy_batch(
                 sigma_batch,
                 g_scalar,
                 logpsi_fn,
                 logpsi_batch,
                 edge_array,
+                edge_type,      # NEW ARG
                 J1=1.0,
                 J2=g_scalar,
                 params=params,
             )
 
-            # O operators
+            # Gradient observables
             def real_wave(P, s):
                 return jnp.real(logpsi_fn(P, s, g_field))
             def imag_wave(P, s):
                 return jnp.imag(logpsi_fn(P, s, g_field))
 
-            O_real_tree = jax.vmap(lambda s: jax.grad(real_wave)(params, s))(sigma_batch)
-            O_imag_tree = jax.vmap(lambda s: jax.grad(imag_wave)(params, s))(sigma_batch)
+            O_real = jax.vmap(lambda s: jax.grad(real_wave)(params, s))(sigma_batch)
+            O_imag = jax.vmap(lambda s: jax.grad(imag_wave)(params, s))(sigma_batch)
+            O_tree = jax.tree.map(lambda r, i: r + 1j*i, O_real, O_imag)
 
-            O_tree = jax.tree.map(lambda r,i: r + 1j*i, O_real_tree, O_imag_tree)
-
-            # flatten
             O_flat = []
             for m in range(M):
                 o, _ = ravel_pytree(jax.tree.map(lambda x: x[m], O_tree))
@@ -184,25 +181,26 @@ def train_fnqs_j1j2(fast=False):
             O_all.append(O_mat)
             E_all.append(E_k)
 
-        # SR step
+        # SR update
         G, S = compute_sr_matrices(O_all, E_all)
         delta = sr_update(G, S, cfg["eta"], cfg["diag_shift"])
         delta_tree = unravel_fn(delta)
 
         params = jax.tree.map(lambda p,dp: p+dp, params, delta_tree)
 
-        # energy log
+        # Logging
         E_concat = jnp.concatenate(E_all)
         meanE = float(jnp.real(jnp.mean(E_concat)))
         imagE = float(jnp.imag(jnp.mean(E_concat)))
-
         if abs(imagE) > 1e-6:
-            print(f"⚠️ Warning: Imag component = {imagE:.3e}")
+            print(f"⚠️ Warning: Imag part = {imagE:.3e}")
 
         log["energy"].append(meanE)
         print(f"[Iter {it:03d}] E = {meanE:.6f}   dt = {time.time()-t0:.2f}s")
 
-    # save
+    # Save results
+    os.makedirs(cfg["logdir"], exist_ok=True)
+
     with open(os.path.join(cfg["logdir"], "training_log.json"), "w") as f:
         json.dump(log, f, indent=2)
 
