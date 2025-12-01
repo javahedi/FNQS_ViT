@@ -1,6 +1,6 @@
 # **FNQS-ViT: Foundation Neural-Network Quantum States with Vision Transformers**
 
-A high-performance variational Monte-Carlo (VMC) framework implementing
+A variational Monte-Carlo (VMC) framework implementing
 **Foundation Neural-Network Quantum States (FNQS)** using a **Vision Transformer (ViT) backbone**.
 The package provides:
 
