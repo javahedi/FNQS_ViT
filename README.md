@@ -174,6 +174,15 @@ HEADS:
 OUTPUT:
     ψ = amp + i*phs
 ```
+
+we have one single ViT, each patch contains two channels:
+   
+```
+  σ patches --\
+                → (per-patch embedding) → Transformer → ψ
+  γ patches --/
+
+```
 ---
 
 # **4. Installation**
