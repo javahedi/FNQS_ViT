@@ -141,7 +141,7 @@ Gamma-conditioning (FNQS idea):
 * model learns features shared across Hamiltonians
 
 
-###$ Full Pipline:
+### Full Pipline:
 ```
 INPUT:
     σ ∈ {−1, +1}^N
