@@ -183,6 +183,69 @@ we have one single ViT, each patch contains two channels:
   γ patches --/
 
 ```
+
+
+ ┌──────────────────────────────────────────────────────────────────────┐
+ │                           2D Spin Lattice                            │
+ │                                                                      │
+ │    σ(x,y)   ∈ {−1, +1}                         γ(x,y)   ∈ ℝ          │
+ │    ───────────────► reshape to (Lx, Ly)  ───────┘                    │
+ └──────────────────────────────────────────────────────────────────────┘
+                  │                               │
+                  ▼                               ▼
+        ┌──────────────────┐             ┌──────────────────┐
+        │  Patch Extractor │             │  Patch Extractor │
+        │   (px × py)      │             │   (px × py)      │
+        └─────────┬────────┘             └─────────┬────────┘
+                  │                                │
+                  ▼                                ▼
+       σ-patches: (N_patches, P)        γ-patches: (N_patches, P)
+       where P = px * py
+                  │                                │
+                  └──────────────┬─────────────────┘
+                                 │
+                                 ▼
+                ┌───────────────────────────────────┐
+                │     Patch Embeddings per token    │
+                │                                   │
+                │   emb_σ  = MLPσ(σ_patch)          │
+                │   emb_γ  = MLPγ(γ_patch)          │
+                │                                   │
+                │   token = concat[emb_σ, emb_γ]    │
+                └───────────────┬───────────────────┘
+                                 │
+                                 ▼
+                Tokens: (N_patches, 2·d_model)
+                                 │
+                                 ▼
+ ┌──────────────────────────────────────────────────────────────────────┐
+ │                           Transformer Encoder                        │
+ │                                                                      │
+ │   [Block 1]  LN → Multi-Head Attention → Residual                    │
+ │   [Block 2]  LN → FeedForward MLP     → Residual                    │
+ │        ⋮                                                             │
+ │   [Block L]  LN → MHA/MLP → Residual                               │
+ │                                                                      │
+ │   output: contextualized tokens (N_patches, 2·d_model)               │
+ └──────────────────────────────────────────────────────────────────────┘
+                                 │
+                                 ▼
+                     Global Average Pooling
+             (mean over all patches → shape = (2·d_model,))
+                                 │
+                                 ▼
+        ┌───────────────────────┬────────────────────────┐
+        ▼                       ▼                        ▼
+   Amplitude Head          Phase Head               (future heads?)
+    MLP_amp(x)             MLP_phase(x)
+       │                       │
+       ▼                       ▼
+  amp(σ,γ) ∈ ℝ            phs(σ,γ) ∈ ℝ
+        └───────────────┬────────────────────────┘
+                        ▼
+      Complex Wavefunction Log-Amplitude
+             ψ(σ,γ) = amp + i · phs
+
 ---
 
 # **4. Installation**
