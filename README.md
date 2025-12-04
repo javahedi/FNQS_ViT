@@ -140,6 +140,40 @@ Gamma-conditioning (FNQS idea):
 * global or structured ( $\gamma$ )-fields
 * model learns features shared across Hamiltonians
 
+
+###$ Full Pipline:
+```
+INPUT:
+    σ ∈ {−1, +1}^N
+    γ ∈ R^N
+
+RESHAPE:
+    σ → (Ly, Lx)
+    γ → (Ly, Lx)
+
+PATCHING:
+    extract 2D patches of shape (px*py)
+    → (num_patches, P)
+
+EMBEDDING:
+    token_i = concat(MLPσ(patchσ_i), MLPγ(patchγ_i))
+    → (num_patches, 2*d_model)
+
+TRANSFORMER:
+    for k in 1..depth:
+        token = token + MHA(LN(token))
+        token = token + FFN(LN(token))
+
+POOL:
+    x = mean(tokens over patches)
+
+HEADS:
+    amp  = MLP_amp(x)
+    phs  = MLP_phase(x)
+
+OUTPUT:
+    ψ = amp + i*phs
+```
 ---
 
 # **4. Installation**
