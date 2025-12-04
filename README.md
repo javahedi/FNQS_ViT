@@ -133,7 +133,7 @@ Standard ViT blocks:
 
 The transformer tokens are pooled and mapped to:
 
-$$\log\psi_\theta(\sigma) \in \mathbb{C}$$
+$$\log\psi_\theta(\sigma, \gamma) \in \mathbb{C}$$
 
 Gamma-conditioning (FNQS idea):
 
